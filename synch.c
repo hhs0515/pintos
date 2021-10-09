@@ -254,9 +254,9 @@ lock_release (struct lock *lock)
   /* ------------Project 1 Implementation ----------- */
 
   struct thread *t = thread_current();
-  struct list_elem *e = &t->donation_list;
+  struct list_elem *e = list_begin(&t->donation_list);
 
-  while(list_size(&t->donation_list) != 0){
+  while(e != list_end(&t->donation_list)){
     struct thread *tmp = list_entry(e, struct thread, donate_elem);
     if(tmp->waiting_lock == lock){
       list_remove(&tmp->donate_elem);

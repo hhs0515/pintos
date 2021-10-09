@@ -466,12 +466,14 @@ init_thread(struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy(t->name, name, sizeof t->name);
   t->stack = (uint8_t *)t + PGSIZE;
+
+  list_init(&t->donation_list);
+  t->magic = THREAD_MAGIC;
+
   /* -------- [Added in Project 1] --------- */
   t->priority = priority;
   t->waiting_lock = NULL;
   /* --------------------------------------- */
-  list_init(&t->donation_list);
-  t->magic = THREAD_MAGIC;
 
   old_level = intr_disable();
   list_push_back(&all_list, &t->allelem);
@@ -665,10 +667,10 @@ bool cmp_donate_priority(const struct list_elem *p, const struct list_elem *q, v
 
 void priority_donation(){
 
-  int d;  // nested donation depth. Maximum = 8
+  int d;  // nested donation depth. priority may range in 0~63
   struct thread *t = thread_current();
 
-  for(d = 0; d < 8; d++){
+  for(d = 0; d < 64; d++){
     if(t->waiting_lock == NULL) {break;}
     struct thread *lock_holder = t->waiting_lock->holder;
     lock_holder->tmp_priority = lock_holder->priority;

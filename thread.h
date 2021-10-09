@@ -96,8 +96,8 @@ struct thread
   /* ----- project_1_Synchronization ----- */
   int tmp_priority;
 
-  struct lock *waiting_lock;
-  struct list donation_list;   /* Multiple Donation problem */
+  struct lock *waiting_lock;    /* points out the lock which the thread is waiting */
+  struct list donation_list;    /* Multiple Donation problem */
   struct list_elem donate_elem; /* list_elem for donation_list */
 
   /* ------------------------------------- */
