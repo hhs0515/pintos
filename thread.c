@@ -667,16 +667,16 @@ bool cmp_donate_priority(const struct list_elem *p, const struct list_elem *q, v
 
 void priority_donation(){
 
-  int d;  // nested donation depth. priority may range in 0~63
+  int d;  // nested donation depth. Max dapth = 8
   struct thread *t = thread_current();
 
-  for(d = 0; d < 64; d++){
+  for(d = 0; d < 8; d++){
     if(t->waiting_lock == NULL) {break;}
     struct thread *lock_holder = t->waiting_lock->holder;
+
     lock_holder->tmp_priority = lock_holder->priority;
     lock_holder->priority = t->priority;
     t = lock_holder;
-    d++;
   }
 
 }

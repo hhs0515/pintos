@@ -68,7 +68,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0)
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, cmp_thread_priority, 0); //[EDITED_project_1_priority_scheduling]
       thread_block ();
     }
   sema->value--;
@@ -200,25 +200,20 @@ lock_acquire (struct lock *lock)
   struct thread *t = thread_current();
 
 /* -------------- Project 1 Implementation -------------- */
-  /* If no one is holding a lock */
-  if(lock_holder == NULL){
-    sema_down (&lock->semaphore);
-    t->waiting_lock = NULL;
-    lock->holder = t;
-  }
+
   /*If a thread is holding a lock, prevent priority inversion*/
-  else{
+  if(lock_holder != NULL){
     t->waiting_lock = lock;
+
+    /* ---------- In case of multiple donation, add into donation_list -----------*/
     list_insert_ordered(&lock->holder->donation_list, &t->donate_elem, cmp_donate_priority, 0);
     priority_donation();
-
+  }
     sema_down (&lock->semaphore);
     t->waiting_lock = NULL;
     lock->holder = t;
 
   }
-
-}
 
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
@@ -255,7 +250,7 @@ lock_release (struct lock *lock)
 
   struct thread *t = thread_current();
   struct list_elem *e = list_begin(&t->donation_list);
-
+  /* circles donation_list, if the thread was waiting for this lock, remove. */
   while(e != list_end(&t->donation_list)){
     struct thread *tmp = list_entry(e, struct thread, donate_elem);
     if(tmp->waiting_lock == lock){
@@ -263,9 +258,13 @@ lock_release (struct lock *lock)
     }
     e = list_next(e);
   }
+
+  /* -------if the list is empty, set original priority --------*/
   if(list_empty(&t->donation_list)){
     t->priority = t->tmp_priority;
   }
+
+  /* -------else, set the highest priority among donation_list members. ---------*/
   else{
     struct thread *next_highest = list_entry(list_front(&t->donation_list), struct thread, donate_elem);
     t->priority = t->tmp_priority > next_highest->priority ? t->tmp_priority : next_highest->priority;
