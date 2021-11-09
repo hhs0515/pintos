@@ -13,13 +13,13 @@
 static thread_func acquire_thread_func;
 
 void
-test_priority_donate_lower (void) 
+test_priority_donate_lower (void)
 {
   struct lock lock;
 
   /* This test does not work with the MLFQS. */
   ASSERT (!thread_mlfqs);
-
+  
   /* Make sure our priority is the default. */
   ASSERT (thread_get_priority () == PRI_DEFAULT);
 
@@ -40,7 +40,7 @@ test_priority_donate_lower (void)
 }
 
 static void
-acquire_thread_func (void *lock_) 
+acquire_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 

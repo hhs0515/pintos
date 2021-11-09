@@ -4,6 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+/* --------- project_2_parent_child_hierarchy ---------- */
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -23,7 +25,12 @@ typedef int tid_t;
 #define PRI_MIN 0      /* Lowest priority. */
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63     /* Highest priority. */
-
+/* Priority donation */
+#define MAX_NESTED_DEPTH 8 // [EDITED_project_1_prioirty_donation]
+/* MLFQS */
+#define NICE_DEFAULT 0       // [EDITED_project_1_MLFQS]
+#define RECENT_CPU_DEFAULT 0 // [EDITED_project_1_MLFQS]
+#define LOAD_AVG_DEFAULT 0   // [EDITED_project_1_MLFQS]
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -90,17 +97,35 @@ struct thread
   int priority;              /* Priority. */
   struct list_elem allelem;  /* List element for all threads list. */
 
-  /* ---- project_1_Alarm_System_Call ---- */
+  /* --------- project_1 ---------- */
+  // Alarm_System_Call
   int64_t wait_until; /* save tick when to wake up */
+  // Prioirity_Scheduling
+  int prev_priority;              // to save the previous priority before donation
+  struct lock *waiting_lock;      // the lock pointer which this thread waits for this lock realesing.
+  struct list donator_list;       // the list of donators for this thread's priority, used at multiple donation
+  struct list_elem donation_elem; // used when this thread donate to others
+  // MLFQS
+  int nice;
+  int recent_cpu;
+  /* -------------------------------------- */
+  /* --------- project_2_parent_child_hierarchy ---------- */
+  struct semaphore load_sema;
+  struct semaphore exit_sema;
+  struct thread *parent_thread;
+  struct list child_list;
+  struct list_elem child_elem;
+  bool load_done;
+  bool exit_done;
+  int exit_status;
 
-  /* ----- project_1_Synchronization ----- */
-  int tmp_priority;
+  /* --------- project_2_file_descriptor ---------- */
+  struct file **file_descriptor;
+  int cur_fd;
+  char **fd_name;
 
-  struct lock *waiting_lock;
-  struct list donation_list;   /* Multiple Donation problem */
-  struct list_elem donate_elem; /* list_elem for donation_list */
-
-  /* ------------------------------------- */
+  /* --------- project_2_denying_writes_to_executables ---------- */
+  struct file *executable;
 
   /* Shared between thread.c and synch.c. */
   struct list_elem elem; /* List element. */
@@ -121,7 +146,7 @@ extern bool thread_mlfqs;
 
 /* ----------------- project_1 ADDED ----------------- */
 
-// Part 1. Alarm Clock
+// Alarm Clock
 /* getter & setter for first_awake_tick (alarm clock) */
 void set_first_awake_tick(int16_t ticks);
 int64_t get_first_awake_tick(void);
@@ -130,11 +155,23 @@ int64_t get_first_awake_tick(void);
 void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 
-// Part 2. Priority Scheduling
-bool cmp_thread_priority(const struct list_elem *p, const struct list_elem *q, void *aux UNUSED);
-void cmp_curThread_readyList_priority(void);
-bool cmp_donate_priority(const struct list_elem *p, const struct list_elem *q, void *aux UNUSED);
-void priority_donation(void);
+// Priority Scheduling
+bool compare_thread_priority(const struct list_elem *p, const struct list_elem *q, void *aux UNUSED);
+void compare_curThread_readyList_priority(void);
+
+// Priority Inversion(donation)
+void donate_priority(void); // for nested donation
+void remove_lock_donator(struct lock *lock);
+void update_priority(void);
+
+// MLFQS
+void MLFQS_cal_priority(struct thread *t);   // calculate priority
+void MLFQS_cal_recent_cpu(struct thread *t); // calculate recent_cpu
+void MLFQS_cal_load_avg(void);               // calculate load_avg
+void MLFQS_incre_recent_cpu(void);           // increment recent_cpu 1 at every 1 tick.
+void MLFQS_recal_priority(void);             // recalculate entire thread's prority at every 4 ticks
+void MLFQS_recal_recent_cpu(void);           // recalculate entire thread's recent_cpu at every 1 second
+
 /* --------------------------------------------------- */
 
 void thread_init(void);

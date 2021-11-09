@@ -88,12 +88,7 @@ void timer_sleep(int64_t ticks)
 {
   int64_t start = timer_ticks();
 
-  // ASSERT (intr_get_level () == INTR_ON);
-  // while (timer_elapsed (start) < ticks)
-  //   thread_yield ();
-
-  // Edited project_1
-  thread_sleep(ticks + start); /* sleep likewise timer_elapsed(start) < ticks do */
+  thread_sleep(ticks + start); /* sleep likewise timer_elapsed(start) < ticks do [EDITED_project_1_alarm_clock] */
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -166,7 +161,23 @@ timer_interrupt(struct intr_frame *args UNUSED)
   ticks++;
   thread_tick();
 
-  // Edited project_1
+  if (thread_mlfqs)
+  {
+    MLFQS_incre_recent_cpu();
+    bool isSecond = (ticks % TIMER_FREQ == 0);
+    bool isFourTick = (ticks % 4 == 0);
+    if (isSecond)
+    {
+      MLFQS_cal_load_avg();
+      MLFQS_recal_recent_cpu();
+    }
+    if (isFourTick)
+    {
+      MLFQS_recal_priority();
+    }
+  }
+
+  // [EDITED_project_1_Alarm_clock]
   if (get_first_awake_tick() <= ticks)
   {
     thread_awake(ticks);
